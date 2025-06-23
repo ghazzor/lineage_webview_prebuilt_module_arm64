@@ -1,0 +1,44 @@
+name: update
+
+on:
+  schedule:
+    - cron: '30 5 * * 0'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Deps
+        run: |
+          sudo apt update
+          sudo apt install curl \
+          zip \
+          git \
+          git-lfs -y
+
+      - name: Build
+        run: |
+          bash update.sh
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add hash
+          HASH=$(cat hash)
+          git commit -m "update: commit $HASH"
+          git push
+
+      - name: Set Release Tag Output
+        id: release-tag
+        run: echo "NOW=$(date +'%y%m%d')" >> "$GITHUB_OUTPUT"
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "./module/loswebview_*.zip"
+          tag: ${{ steps.release-tag.outputs.NOW }}
